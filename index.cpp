@@ -18,6 +18,8 @@
     int cannyThreshold2 = 300;
     int skip = 5;  // Controla la densidad de puntos
     double scaleFactor = 0.5;  // Escala para redimensionar la imagen
+    cv::Mat mask;
+
 
     // Estructura de Triángulo
     struct Triangle {
@@ -103,18 +105,28 @@
         }
 
         for (const auto& t : triangles) {
-            vector<cv::Point2f> triPoints = {t.p1, t.p2, t.p3};
-            cv::Mat mask = cv::Mat::zeros(resizedImg.size(), CV_8UC1);
-            vector<cv::Point> triangleInt;
+            std::array<cv::Point, 3> triangleInt = {
+                cv::Point(cvRound(t.p1.x), cvRound(t.p1.y)),
+                cv::Point(cvRound(t.p2.x), cvRound(t.p2.y)),
+                cv::Point(cvRound(t.p3.x), cvRound(t.p3.y))
+            };
 
-            for (const auto& pt : triPoints) {
-                triangleInt.push_back(cv::Point(cvRound(pt.x), cvRound(pt.y)));
-            }
+            cv::Rect boundingBox = boundingRect(triangleInt);
+            mask = cv::Mat::zeros(boundingBox.size(), CV_8UC1);
 
-            fillConvexPoly(mask, triangleInt, cv::Scalar(255));
-            cv::Scalar meanColor = mean(resizedImg, mask);
-            cv::Vec3b color(meanColor[0], meanColor[1], meanColor[2]);
-            fillConvexPoly(localPoints, triangleInt, cv::Scalar(color[0], color[1], color[2]), cv::LINE_AA);
+            std::array<cv::Point, 3> roiTriangle = {
+                triangleInt[0] - boundingBox.tl(),
+                triangleInt[1] - boundingBox.tl(),
+                triangleInt[2] - boundingBox.tl()
+            };
+
+            fillConvexPoly(mask, roiTriangle, 255);
+
+            cv::Mat roiImg = resizedImg(boundingBox);
+            cv::Scalar meanColor = cv::mean(roiImg, mask);
+
+            fillConvexPoly(localPoints, triangleInt, 
+                cv::Scalar(meanColor[0], meanColor[1], meanColor[2]), cv::LINE_AA);
         }
 
         resize(localPoints, output, img.size(), 0, 0, cv::INTER_LINEAR);
