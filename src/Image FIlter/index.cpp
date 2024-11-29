@@ -7,7 +7,7 @@ using namespace std;
 
 int cannyThreshold1 = 100;
 int cannyThreshold2 = 200;
-int skip = 10; 
+int skip = 15; 
 
 struct Triangle {
     Point2f p1, p2, p3;
@@ -75,11 +75,11 @@ void applyLowPolyEffect(const Mat& img, Mat& output, Mat& edges, Mat& drawPoints
         Triangle(Point2f(img.cols - 1, 0), Point2f(img.cols - 1, img.rows - 1), Point2f(0, img.rows - 1))
     };
 
-    imageTriangles = Mat::zeros(img.size(), CV_8UC3);
     output = Mat::zeros(img.size(), CV_8UC3);
     drawPoints = Mat::zeros(img.size(), CV_8UC3);
 
     for (const Point2f& p : points) {
+        imageTriangles = Mat::zeros(img.size(), CV_8UC3);  // Limpia la imagen antes de cada iteración
         for (const auto& t : triangles) {
             vector<Point> pts = {t.p1, t.p2, t.p3};
             polylines(imageTriangles, pts, true, Scalar(0, 255, 0), 2);
@@ -115,7 +115,7 @@ void applyLowPolyEffect(const Mat& img, Mat& output, Mat& edges, Mat& drawPoints
     }
 
     for (const auto& p : points) {
-        circle(drawPoints, p, 1, Scalar(0, 0, 255), FILLED, LINE_AA);
+        circle(drawPoints, p, 3, Scalar(0, 0, 255), FILLED, LINE_AA);
     }
 }
 
@@ -129,6 +129,7 @@ int main() {
     Mat output, edges, drawPoints, imageTriangles;
     applyLowPolyEffect(img, output, edges, drawPoints, imageTriangles);
 
+    imshow("Original", img);
     imshow("Low Poly Effect", output);
     imshow("Points", drawPoints);
     imshow("Edges", edges);
